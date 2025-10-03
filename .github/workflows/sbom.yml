@@ -1,0 +1,31 @@
+name: Trivy Vulnerability Scan
+
+on:
+  push:
+    branches:
+      - main   # Run on pushes to main
+  workflow_dispatch: # Allow manual runs
+    inputs: 
+      TRIVY_URL:
+        description: 'A custom input variable'
+        required: true
+
+jobs:
+  trivy-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Trivy
+        run: |
+          version=$(curl -s https://api.github.com/repos/aquasecurity/trivy/releases/latest | jq -r '.tag_name')
+          curl -L -o trivy_${version#v}_Linux-64bit.deb https://github.com/aquasecurity/trivy/releases/download/${version}/trivy_${version#v}_Linux-64bit.deb
+          sudo dpkg -i trivy_*_Linux-64bit.deb
+
+      - name: Run Trivy Scan
+        run: |
+          # trivy repo ${{ github.event.inputs.TRIVY_URL }} --severity CRITICAL,HIGH --no-progress
+          trivy sbom ${{ github.event.inputs.TRIVY_URL }} --output sbom.json --format spdx-json
+        continue-on-error: true
